@@ -54,7 +54,7 @@ Clone the repository into your Rainmeter skins directory:
 
 ```bash
 cd ~/Documents/Rainmeter/Skins
-git clone https://github.com/Varun-U-Pratap/DSATracker.git
+git clone https://github.com/Varun-U-Pratap/DSA_Widget.git
 config.example.json → config.json
 ```
 
