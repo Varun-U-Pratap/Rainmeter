@@ -1,0 +1,4 @@
+[Variables]
+; Uncomment and set your python path if 'pythonw' is not in system PATH
+; PythonPath="C:\Path\To\Python\pythonw.exe"
+; PythonParam=#CURRENTPATH#stats.py

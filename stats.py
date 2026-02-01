@@ -4,7 +4,6 @@ import urllib.error
 import re
 import datetime
 import os
-import sys
 import time
 
 # --- CONFIGURATION ---
@@ -169,17 +168,21 @@ def get_gfg_stats():
         req = urllib.request.Request(url, headers={'User-Agent': HEADERS['User-Agent']})
         with urllib.request.urlopen(req, timeout=10) as response:
             svg_text = response.read().decode('utf-8')
+            
+            # Try to find total solved directly
             match = re.search(r"Problem Solved.*?>(\d+)<", svg_text, re.IGNORECASE | re.DOTALL)
             if match:
                 return int(match.group(1))
             
-            # Summation fallback
-            def find_count(label):
-                pattern = f"{label}.*?>(\\d+)<"
-                m = re.search(pattern, svg_text, re.IGNORECASE | re.DOTALL)
-                return int(m.group(1)) if m else 0
+            # Summation fallback: Find counts for each difficulty
+            total = 0
+            # Regex to find count for a label: Label ... >123<
+            # Optimized to look for specific difficulty patterns
+            for diff in ["School", "Basic", "Easy", "Medium", "Hard"]:
+                m = re.search(f"{diff}.*?>(\\d+)<", svg_text, re.IGNORECASE | re.DOTALL)
+                if m:
+                    total += int(m.group(1))
             
-            total = find_count("School") + find_count("Basic") + find_count("Easy") + find_count("Medium") + find_count("Hard")
             if total > 0: 
                 return total
     except urllib.error.URLError as e:
@@ -268,24 +271,50 @@ def main():
     yesterday = today - datetime.timedelta(days=1)
     yesterday_str = yesterday.strftime("%Y-%m-%d")
     
-    # 2. Activity & Streak Logic
+    # 2. Activity & Streak Logic (Time-Based Duolingo Style)
     
     # Check if we have solved anything NEW
     lc_increased = (lc_count is not None) and (lc_count > last_lc)
     gfg_increased = (gfg_count is not None) and (gfg_count > last_gfg)
     
-    # Check if we were already active today (from previous run)
-    was_active_today = history.get("daily_history", {}).get(today_str, False)
-    
     current_timestamp = time.time()
+    last_activity_ts = history.get("last_activity_timestamp", 0)
+    last_streak_ts = history.get("last_streak_timestamp", 0)
     
+    # STRICT 24H RULE: Check if streak is broken BEFORE processing new activity
+    # If more than 24 hours have passed since the LAST SOLVE, reset to 0.
+    time_gap = current_timestamp - last_activity_ts if last_activity_ts else 9999999
+    
+    current_streak = history.get("streak", 0)
+    if time_gap > 86400: # 24 Hours
+        current_streak = 0
+        # If broken, reset streak timestamp too so next solve counts as 1 immediately
+        last_streak_ts = 0 
+        
     # Update timestamp if we have NEW activity
     if lc_increased or gfg_increased:
         history["last_activity_timestamp"] = current_timestamp
-        was_active_today = True
         
-    # Migration: If timestamp is 0 but we are active today, assume activity happened recently
-    if history["last_activity_timestamp"] == 0 and was_active_today:
+        # Streak Increment Logic:
+        # 1. If streak was 0, it becomes 1.
+        # 2. If streak > 0, we need a cooldown to prevent spamming.
+        #    "Duolingo style" means roughly once per "day".
+        #    Since we are NOT using calendar, we use a 15-hour cooldown from the LAST STREAK INCREMENT.
+        
+        streak_gap = current_timestamp - last_streak_ts
+        
+        if current_streak == 0:
+            current_streak = 1
+            history["last_streak_timestamp"] = current_timestamp
+        elif streak_gap > 54000: # 15 Hours (15 * 3600)
+            current_streak += 1
+            history["last_streak_timestamp"] = current_timestamp
+        
+        # Note: If streak > 0 and gap < 15h, we do NOTHING to streak, 
+        # but we DID update last_activity_ts above, so the 24h timer resets.
+        
+    # Migration: If timestamp is 0 but we have activity, assume it happened recently
+    if history["last_activity_timestamp"] == 0 and (lc_increased or gfg_increased):
         history["last_activity_timestamp"] = current_timestamp
 
     # Update stored totals if they increased
@@ -297,24 +326,18 @@ def main():
     # Recalculate Total based on stored bests (to avoid drops)
     history["last_total"] = history["last_lc_total"] + history["last_gfg_total"]
     
-    # Update Daily History
+    # Save the strictly calculated streak
+    history["streak"] = current_streak
+    
+    # Maintain daily_history only for the visual graph (approximate)
+    was_active_today = history.get("daily_history", {}).get(today_str, False)
+    if lc_increased or gfg_increased:
+        was_active_today = True
+        
     if "daily_history" not in history:
         history["daily_history"] = {}
     history["daily_history"][today_str] = was_active_today
     
-    # Update Streak (Calendar Day based): count consecutive days backward from today or yesterday
-    streak_calc = 0
-    check_date = today if was_active_today else yesterday
-    
-    while True:
-        d_str = check_date.strftime("%Y-%m-%d")
-        if history["daily_history"].get(d_str, False):
-            streak_calc += 1
-            check_date -= datetime.timedelta(days=1)
-        else:
-            break
-    
-    history["streak"] = max(0, streak_calc)
     if was_active_today:
         history["last_date"] = today_str
         
@@ -323,6 +346,7 @@ def main():
     # 3. Generate variables.inc
     
     # Fire Logic: "Solved problem in past 24 hrs" (strict 24h window)
+    # Re-read timestamp in case it was updated
     last_activity_ts = history.get("last_activity_timestamp", 0)
     time_since_activity = current_timestamp - last_activity_ts if last_activity_ts else 999999
     is_fire_on = time_since_activity < 86400  # 24 hours in seconds
@@ -337,6 +361,12 @@ def main():
         output_lines.append("FireImg=fireon.png")
     else:
         output_lines.append("FireImg=fireoff.png")
+        
+    # Streak Color Logic
+    COLOR_ACCENT = "255,150,0,255" # Orange
+    COLOR_TEXT_SUB = "150,150,150,255" # Grey
+    streak_color = COLOR_ACCENT if is_fire_on else COLOR_TEXT_SUB
+    output_lines.append(f"StreakColor={streak_color}")
         
     # Weekly View Colors (Kept for compatibility/future use)
     week_dates = get_current_week_dates()
@@ -379,7 +409,7 @@ def main():
             log_message(f"Error writing stats.json: {e}")
 
     # Single line for Rainmeter to parse from RunCommand stdout (avoids WebParser file cache)
-    rainmeter_line = f"RAINMETER:Streak={history['streak']}|TotalSolved={history['last_total']}|LC_Count={history['last_lc_total']}|GFG_Count={history['last_gfg_total']}|FireImg={'fireon.png' if is_fire_on else 'fireoff.png'}"
+    rainmeter_line = f"RAINMETER:Streak={history['streak']}|TotalSolved={history['last_total']}|LC_Count={history['last_lc_total']}|GFG_Count={history['last_gfg_total']}|FireImg={'fireon.png' if is_fire_on else 'fireoff.png'}|StreakColor={streak_color}"
     print(rainmeter_line)
 
 if __name__ == "__main__":

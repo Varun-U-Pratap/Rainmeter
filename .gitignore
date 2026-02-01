@@ -1,0 +1,10 @@
+# Ignore user-specific data and logs
+__pycache__/
+*.pyc
+debug.log
+history.json
+stats.json
+variables.inc
+config.json
+local.inc
+.DS_Store

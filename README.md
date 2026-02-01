@@ -1,95 +1,63 @@
-# DSATracker 🔥
+# DSA Tracker for Rainmeter
 
-![DSATracker Banner](https://placehold.co/1200x400/FF9600/141414?text=DSATracker&font=inter)
+A modular, Rainmeter-based tracker for LeetCode and GeeksForGeeks progress.
+Features a **Duolingo-inspired streak system** that tracks your daily coding activity.
 
-A sleek, desktop-integrated performance tracker for LeetCode and GeeksForGeeks built with Python and Rainmeter. DSATracker helps users maintain their coding consistency by bringing real-time streak data and problem-solving stats directly to their Windows desktop. This project was developed to gamify the DSA preparation process.
+![Preview](fireon.png)
 
----
+## Features
 
-## ✨ Features
+- **Streak System**: 
+  - Tracks consecutive days of coding.
+  - **Duolingo Style**: Streak increments based on time (15h cooldown), not just calendar days.
+  - **Strict Reset**: Resets if no problem is solved within 24 hours of the last solve.
+  - **Visual Feedback**: Fire icon glows orange when active, turns grey/off when streak is at risk or broken.
+- **Multi-Platform**: Tracks LeetCode (GraphQL) and GeeksForGeeks (Scraping/API).
+- **Modular**: Python script can be used standalone or with other widgets.
+- **Robust**: Handles network failures and API changes gracefully.
 
-DSATracker is packed with features designed to provide a seamless and motivational coding track experience.
+## Installation
 
-### Core Functionality
-- **Dual-Platform Tracking**: Syncs data from both LeetCode (via GraphQL) and GeeksForGeeks (via optimized Web Scraping) to provide a unified view of your progress.
-- **Smart Streak System**: Automatically calculates daily streaks based on calendar activity, ensuring your hard work is visually recognized.
-- **Real-Time Problem Counter**: Displays the total number of problems solved across platforms, updated dynamically.
-- **Activity "Fire" Indicator**: A Duolingo-inspired visual logic that "lights up" only if you have remained active within the last 24 hours.
-- **Local Data Persistence**: Saves all history, streaks, and timestamps locally in `history.json` to reduce API overhead and allow for offline viewing of last-known stats.
+1. **Install Rainmeter**: [https://www.rainmeter.net/](https://www.rainmeter.net/)
+2. **Clone this repo** into your Rainmeter Skins folder:
+   ```bash
+   cd ~/Documents/Rainmeter/Skins
+   git clone https://github.com/yourusername/DSATracker.git
+   ```
+3. **Configuration**:
+   - Rename `config.example.json` to `config.json`.
+   - Edit `config.json` and enter your usernames:
+     ```json
+     {
+         "leetcode_username": "your_username",
+         "gfg_username": "your_username",
+         "output_format": "rainmeter"
+     }
+     ```
+4. **Python Setup**:
+   - Ensure Python 3 is installed.
+   - If `pythonw` is in your system PATH, it should work out of the box.
+   - **Custom Python Path**: If the skin doesn't load stats:
+     - Rename `local.inc.example` to `local.inc`.
+     - Edit `local.inc` and set `PythonPath` to your `pythonw.exe` location.
+5. **Load Skin**: Open Rainmeter, find **DSATracker**, and load `DSATracker.ini`.
 
-### Engineering & Optimization
-- **Stability Engine**: Utilizes a Direct Stdout Parser to pass data from Python to Rainmeter instantly, preventing the "UI Jumping" effect found in standard file-based skins.
-- **Custom Geometry Drag Handle**: Includes a specialized "hitbox" at the bottom of the widget that follows the curved UI border, allowing for easy repositioning without interfering with click actions.
-- **Automated Update Cycle**: A background timer refreshes your stats every 10 minutes, with a manual "click-to-sync" override for instant updates.
-- **Low Resource Footprint**: Built to run silently in the background using `pythonw`, consuming negligible CPU and RAM.
-- **Logging System**: A robust `debug.log` tracks network requests and script execution to assist in rapid troubleshooting.
+## Usage
 
-### Polished User Experience
-- **Sleek & Animated UI**: Modern dark-theme aesthetic with rounded corners and high-contrast typography designed for developer setups.
-- **Syncing Visuals**: Clear "Syncing..." status indicators to let the user know when data is being fetched.
-- **App Installer Bypass**: Custom environment handling in `local.inc` prevents the Windows Store from interrupting the user when the system is offline.
-- **Haptic-Style Visual Cues**: Immediate UI feedback on refresh and interaction.
+- **Refresh**: Click the widget area to manually refresh stats.
+- **Auto-Update**: Updates automatically every 10 minutes.
+- **Streak Rules**:
+  - Solve at least one problem every 24 hours to keep the fire burning.
+  - Streak increases only once per 15-hour window (prevents farming).
 
----
+## Files Structure
 
-## 🛠️ Tech Stack & Architecture
+- `DSATracker.ini`: The Rainmeter skin definition.
+- `stats.py`: The core logic (fetches data, calculates streak).
+- `config.json`: User configuration (ignored by git).
+- `history.json`: Local storage for streak data (generated automatically).
+- `variables.inc`: Dynamic variables for the skin (generated automatically).
 
-- **Logic Engine**: Python 3
-- **UI Framework**: Rainmeter (Skin DSL)
-- **Data Retrieval**: 
-  - LeetCode API (GraphQL)
-  - GFG Scraper (Regex-based HTML Parsing)
-- **Key Python Components**:
-  - `urllib.request`: For dependency-free API communication.
-  - `json`: For local state management and configuration.
-  - `re`: For scraping dynamic web content.
-- **Architecture**: A modular system separating UI (Rainmeter), Logic (Python), and User Overrides (Include files).
+## License
 
----
-
-## 🚀 Getting Started
-
-Follow these instructions to get the tracker running on your local machine.
-
-### Prerequisites
-
-- [Rainmeter](https://www.rainmeter.net/) (Windows only).
-- [Python 3.x](https://www.python.org/downloads/) (Ensure it is added to your System PATH).
-
-### Installation & Setup
-
-1.  **Clone the repository:**
-    ```sh
-    https://github.com/Varun-U-Pratap/Rainmeter.git
-    ```
-
-2.  **Configure your handles:**
-    Open `config.json` and enter your platform usernames:
-    ```json
-    {
-        "leetcode_username": "YOUR_LEETCODE_ID",
-        "gfg_username": "YOUR_GFG_ID"
-    }
-    ```
-
-3.  **Configure Python Path:**
-    This project uses a direct path to prevent Windows App Store popups.
-    - Run `where pythonw` in your command prompt.
-    - Open `local.inc` and paste your path:
-    ```ini
-    [Variables]
-    PythonPath="C:\Users\YourName\AppData\Local\Programs\Python\Python312\pythonw.exe"
-    ```
-
-4.  **Load the Widget:**
-    - Copy the project folder to `Documents\Rainmeter\Skins`.
-    - Right-click Rainmeter → Illustro → DSATracker → `DSATracker.ini` -> **Load**.
-
----
-
-## 🧑‍💻 About the Developer
-
-This project was created by:
-
-- **Varun U Pratap**
-  - **LinkedIn**: [https://www.linkedin.com/in/varun-u-pratap-856826340](https://www.linkedin.com/in/varun-u-pratap-856826340)
+Creative Commons Attribution-Non-Commercial-Share Alike 3.0
