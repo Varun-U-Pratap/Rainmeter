@@ -1,52 +1,76 @@
 # DSA Tracker for Rainmeter
 
-![DSATracker Banner](https://placehold.co/1200x400/FF9600/141414?text=DSATracker&font=inter)![DSA Tracker Preview](fireon.png)![DSA Tracker Preview](fireoff.png)
+![DSATracker Banner](https://placehold.co/1200x400/FF9600/141414?text=DSATracker&font=inter)
+![DSA Tracker Preview](fireon.png)
+![DSA Tracker Preview](fireoff.png)
 
-A **modular Rainmeter-based DSA progress tracker** for **LeetCode** and **GeeksForGeeks**, featuring a **Duolingo-inspired streak system** that rewards real consistency instead of calendar abuse.
+A **modular Rainmeter-based DSA progress tracker** for **LeetCode** and **GeeksForGeeks**, built around a **strict, time-based activity validation system** to reflect genuine problem-solving consistency.
 
-Designed for developers who want **visible discipline**, not vanity stats.
+Designed for developers who value **discipline, visibility, and engineering rigor** over inflated metrics.
 
 ---
 
 ## ✨ Features
 
-### 🔥 Duolingo-Style Streak System
-- Tracks **consecutive coding activity** using real timestamps
-- **15-hour cooldown window** to prevent artificial streak farming
-- **Strict 24-hour reset rule** if no problem is solved
-- **Time-based streak logic**, not date-based
+### 🔥 Time-Based Streak Validation
+- Tracks **consecutive coding activity using timestamps**, not calendar days
+- **15-hour cooldown window** prevents artificial or repeated streak increments
+- **Hard 24-hour expiry rule** resets streak on inactivity
+- Eliminates timezone manipulation and date-based loopholes
 
-### 🎯 Visual Feedback
-- 🔥 Fire icon glows **orange** when streak is active
-- 🌫️ Fire turns **grey/off** when streak is broken or at risk
-- Instant motivation directly on your desktop
+### 🎯 Real-Time Visual Feedback
+- 🔥 Fire indicator turns **active (orange)** when streak conditions are met
+- 🌫️ Indicator switches **inactive (grey)** when streak expires
+- Immediate on-desktop feedback without opening a browser or app
 
-### 🌐 Multi-Platform Tracking
-- **LeetCode** — GraphQL-based data fetching
-- **GeeksForGeeks** — Scraping / API fallback logic
-- Built to tolerate minor API or layout changes
+### 🌐 Multi-Platform Support
+- **LeetCode** — GraphQL-based data retrieval
+- **GeeksForGeeks** — Scraping with structured fallback logic
+- Designed to tolerate minor API, schema, or layout changes
 
-### 🧩 Modular Architecture
-- Python backend works:
-  - Standalone
-  - With Rainmeter
-  - As a base for future platform extensions
+### 🧩 Modular & Extensible Architecture
+- Python backend can operate:
+  - Independently (CLI / scripts)
+  - Integrated with Rainmeter
+  - As a base layer for additional coding platforms
+- Clean separation between:
+  - Data fetching
+  - Validation logic
+  - UI rendering
 
-### 🛡️ Robust & Fault-Tolerant
-- Gracefully handles:
-  - Network failures
-  - Partial responses
-  - API downtime
-- No broken skins or crashes
+### 🛡️ Fault-Tolerant by Design
+- Graceful handling of:
+  - Network outages
+  - Partial or delayed responses
+  - Platform downtime
+- Prevents UI crashes or corrupted state in Rainmeter
 
 ---
 
-## 🖥️ Installation & Setup
+## 🧠 Why This Project?
 
-### Prerequisites
-- Windows
-- Rainmeter installed → https://www.rainmeter.net/
-- Python 3 installed (`pythonw.exe` recommended)
+While preparing Data Structures and Algorithms, I found it difficult to **consistently track progress and stay accountable** while focusing on *actually understanding* DSA concepts rather than just solving problems.
+
+I explored existing tools and trackers, but most were:
+- Date-based and easy to manipulate
+- Focused on raw counts instead of consistency
+- Detached from the development environment
+
+To address this gap, I designed and built my own solution.
+
+This project:
+- Enforces **time-based activity validation**
+- Provides **always-visible feedback** directly on the desktop
+- Removes reliance on self-reporting or manual updates
+- Encourages sustained, disciplined practice through system constraints
+
+By building the tool myself, I solved both problems:
+1. Creating a **reliable way to track real DSA practice**
+2. Improving my own **consistency and understanding** through enforced structure
+
+The result is a lightweight monitoring system that reflects genuine effort, not inflated statistics.
+
+---
 
 ### Setup Instructions
 
@@ -75,9 +99,13 @@ local.inc.example → local.inc
 PythonPath=C:\Path\To\pythonw.exe
 ```
 
-Open Rainmeter, locate DSATracker, and load DSATracker.ini.
+---
 
-Click the widget to manually refresh stats.  
-Stats auto-update every 10 minutes.  
-Solve at least one problem every 24 hours to keep the streak alive.  
-Streak increments only once per 15-hour window.
+## 🧑‍💻 About the Developer
+
+- **Varun U Pratap**
+  - **LinkedIn**: [https://www.linkedin.com/in/varun-u-pratap-856826340](https://www.linkedin.com/in/varun-u-pratap-856826340)
+
+## 📞 Contact Me
+
+For any inquiries, feedback, or collaborations regarding NutriCalc, please reach out to me on LinkedIn.
