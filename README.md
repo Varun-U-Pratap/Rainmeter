@@ -84,22 +84,23 @@ mv config.example.json config.json
 mv local.inc.example local.inc
 ```
 
-### Edit config.json and add your usernames:
-add your usernames instead of your_username
+### Edit config.json and add your LeetCode and GFG usernames:
+Replace the placeholders with your actual usernames.
 ```json
 {
-  "leetcode_username": "your_username",
-  "gfg_username": "your_username",
+  "leetcode_username": "your_leetcode_username",
+  "gfg_username": "your_gfg_username",
   "output_format": "rainmeter"
 }
 ```
+**Note:** `config.json`, `local.inc`, `history.json`, `variables.inc`, and `debug.log` are gitignored—your data and paths are never committed.
 
-### If Python is not detected automatically or the widget is blank, configure it manually or else you are good t go:
+### If Python is not detected automatically or the widget is blank, configure it manually or else you are good to go:
 open CMD and run
 ```bash
 where pythonw
 ```
-copy the last path and paste it instead of C:\Path\To\pythonw.exe in local.inc
+copy the last path and paste it into `local.inc` (see `local.inc.example`). Use `PythonPath=...` with no leading space.
 
 
 

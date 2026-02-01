@@ -20,14 +20,18 @@ HEADERS = {
     'Content-Type': 'application/json'
 }
 
+# Set after _paths(); safe for log_message() when config is loaded before paths
+DEBUG_LOG = None
+
 def log_message(message):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     formatted_msg = f"[{timestamp}] {message}"
     print(formatted_msg)
     try:
-        with open(DEBUG_LOG, "a", encoding="utf-8") as f:
-            f.write(formatted_msg + "\n")
-    except OSError:
+        if DEBUG_LOG is not None:
+            with open(DEBUG_LOG, "a", encoding="utf-8") as f:
+                f.write(formatted_msg + "\n")
+    except (OSError, NameError):
         pass
 
 def load_config():
@@ -35,15 +39,15 @@ def load_config():
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        log_message("Config file not found. Using defaults.")
-        return {"leetcode_username": "upratapvarun", "gfg_username": "upratapim33"}
+        log_message("Config file not found. Copy config.example.json to config.json and set your usernames.")
+        return {"leetcode_username": "your_leetcode_username", "gfg_username": "your_gfg_username"}
     except json.JSONDecodeError as e:
-        log_message(f"Config file invalid JSON: {e}. Using defaults.")
-        return {"leetcode_username": "upratapvarun", "gfg_username": "upratapim33"}
+        log_message(f"Config file invalid JSON: {e}. Using placeholders; set config.json for your usernames.")
+        return {"leetcode_username": "your_leetcode_username", "gfg_username": "your_gfg_username"}
 
 config = load_config()
-LEETCODE_USER = config.get("leetcode_username", "upratapvarun")
-GFG_USER = config.get("gfg_username", "upratapim33")
+LEETCODE_USER = config.get("leetcode_username", "your_leetcode_username")
+GFG_USER = config.get("gfg_username", "your_gfg_username")
 
 def _base_dir():
     """Folder for history, variables, log. From config base_dir (relative to script or absolute)."""
@@ -65,7 +69,7 @@ def _paths():
 _paths = _paths()
 HISTORY_FILE = _paths["history"]
 VARIABLES_FILE = _paths["variables"]
-DEBUG_LOG = _paths["debug_log"]
+DEBUG_LOG = _paths["debug_log"]  # overwrites None set above
 STATS_JSON = _paths["stats_json"]
 
 def get_leetcode_stats():
@@ -199,7 +203,8 @@ def load_history():
         "last_total": 0,
         "last_date": None,
         "daily_history": {},
-        "last_activity_timestamp": 0
+        "last_activity_timestamp": 0,
+        "last_streak_timestamp": 0,
     }
     if not os.path.exists(HISTORY_FILE):
         return default
@@ -234,27 +239,78 @@ def get_current_week_dates():
         dates.append(day.strftime("%Y-%m-%d"))
     return dates
 
+def _build_output_from_history(history):
+    """Build variables.inc lines and RAINMETER line from history (for last-known display)."""
+    current_timestamp = time.time()
+    last_activity_ts = history.get("last_activity_timestamp", 0)
+    time_since_activity = current_timestamp - last_activity_ts if last_activity_ts else 999999
+    is_fire_on = time_since_activity < 86400  # 24 hours
+    COLOR_ACCENT = "255,150,0,255"
+    COLOR_TEXT_SUB = "150,150,150,255"
+    streak_color = COLOR_ACCENT if is_fire_on else COLOR_TEXT_SUB
+    fire_img = "fireon.png" if is_fire_on else "fireoff.png"
+    output_lines = [
+        f"Streak={history.get('streak', 0)}",
+        f"TotalSolved={history.get('last_total', 0)}",
+        f"LC_Count={history.get('last_lc_total', 0)}",
+        f"GFG_Count={history.get('last_gfg_total', 0)}",
+        f"FireImg={fire_img}",
+        f"StreakColor={streak_color}",
+    ]
+    week_dates = get_current_week_dates()
+    COLOR_ACTIVE = "255,255,255,255"
+    COLOR_INACTIVE = "60,60,60,255"
+    for i, date_str in enumerate(week_dates):
+        status = history.get("daily_history", {}).get(date_str, False)
+        color = COLOR_ACTIVE if status else COLOR_INACTIVE
+        output_lines.append(f"Day{i+1}Color={color}")
+    rainmeter_line = (
+        f"RAINMETER:Streak={history.get('streak', 0)}|TotalSolved={history.get('last_total', 0)}|"
+        f"LC_Count={history.get('last_lc_total', 0)}|GFG_Count={history.get('last_gfg_total', 0)}|"
+        f"FireImg={fire_img}|StreakColor={streak_color}"
+    )
+    return output_lines, rainmeter_line
+
+def _write_variables_and_rainmeter(output_lines, rainmeter_line):
+    """Write variables.inc and print RAINMETER line for RunCommand to capture."""
+    try:
+        with open(VARIABLES_FILE, "w", encoding="utf-8") as f:
+            f.write("[Variables]\n")
+            f.write("\n".join(output_lines))
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+    except OSError as e:
+        log_message(f"Error writing variables.inc: {e}")
+    print(rainmeter_line)
+
 def main():
     log_message("--- Starting Update ---")
     
-    # 1. Get Totals
-    lc_count = get_leetcode_stats()
-    if lc_count: log_message(f"LeetCode Success: {lc_count}")
-    
-    gfg_count = get_gfg_stats()
-    if gfg_count: log_message(f"GFG Success: {gfg_count}")
-    
-    # Load History
+    # Load history FIRST so we can show last-known values even when offline or on timeout
     history = load_history()
     
     # Migration: ensure all keys exist (old history files may be missing some)
     if "last_lc_total" not in history: history["last_lc_total"] = 0
     if "last_gfg_total" not in history: history["last_gfg_total"] = 0
     if "last_activity_timestamp" not in history: history["last_activity_timestamp"] = 0
+    if "last_streak_timestamp" not in history: history["last_streak_timestamp"] = 0
     if "streak" not in history: history["streak"] = 0
     if "last_total" not in history: history["last_total"] = history["last_lc_total"] + history["last_gfg_total"]
     if "last_date" not in history: history["last_date"] = None
     if "daily_history" not in history: history["daily_history"] = {}
+    
+    # Output last-known values immediately so Rainmeter always gets parseable data
+    # (fixes blank widget after reboot or when offline/timeout)
+    output_lines, rainmeter_line = _build_output_from_history(history)
+    _write_variables_and_rainmeter(output_lines, rainmeter_line)
+    
+    # 1. Get Totals (may hang or fail when offline)
+    lc_count = get_leetcode_stats()
+    if lc_count: log_message(f"LeetCode Success: {lc_count}")
+    
+    gfg_count = get_gfg_stats()
+    if gfg_count: log_message(f"GFG Success: {gfg_count}")
     
     last_lc = history.get("last_lc_total", 0)
     last_gfg = history.get("last_gfg_total", 0)
@@ -312,10 +368,6 @@ def main():
         
         # Note: If streak > 0 and gap < 15h, we do NOTHING to streak, 
         # but we DID update last_activity_ts above, so the 24h timer resets.
-        
-    # Migration: If timestamp is 0 but we have activity, assume it happened recently
-    if history["last_activity_timestamp"] == 0 and (lc_increased or gfg_increased):
-        history["last_activity_timestamp"] = current_timestamp
 
     # Update stored totals if they increased
     if lc_count is not None and lc_count > last_lc:
@@ -343,52 +395,11 @@ def main():
         
     save_history(history)
     
-    # 3. Generate variables.inc
+    # 3. Generate variables.inc and RAINMETER line (updated values)
+    output_lines, rainmeter_line = _build_output_from_history(history)
+    _write_variables_and_rainmeter(output_lines, rainmeter_line)
     
-    # Fire Logic: "Solved problem in past 24 hrs" (strict 24h window)
-    # Re-read timestamp in case it was updated
-    last_activity_ts = history.get("last_activity_timestamp", 0)
-    time_since_activity = current_timestamp - last_activity_ts if last_activity_ts else 999999
-    is_fire_on = time_since_activity < 86400  # 24 hours in seconds
-    
-    output_lines = []
-    output_lines.append(f"Streak={history['streak']}")
-    output_lines.append(f"TotalSolved={history['last_total']}")
-    output_lines.append(f"LC_Count={history['last_lc_total']}")
-    output_lines.append(f"GFG_Count={history['last_gfg_total']}")
-    
-    if is_fire_on:
-        output_lines.append("FireImg=fireon.png")
-    else:
-        output_lines.append("FireImg=fireoff.png")
-        
-    # Streak Color Logic
-    COLOR_ACCENT = "255,150,0,255" # Orange
-    COLOR_TEXT_SUB = "150,150,150,255" # Grey
-    streak_color = COLOR_ACCENT if is_fire_on else COLOR_TEXT_SUB
-    output_lines.append(f"StreakColor={streak_color}")
-        
-    # Weekly View Colors (Kept for compatibility/future use)
-    week_dates = get_current_week_dates()
-    COLOR_ACTIVE = "255,255,255,255"
-    COLOR_INACTIVE = "60,60,60,255"
-    
-    for i, date_str in enumerate(week_dates):
-        status = history["daily_history"].get(date_str, False)
-        color = COLOR_ACTIVE if status else COLOR_INACTIVE
-        output_lines.append(f"Day{i+1}Color={color}")
-        
-    try:
-        with open(VARIABLES_FILE, "w", encoding="utf-8") as f:
-            f.write("[Variables]\n")
-            f.write("\n".join(output_lines))
-            f.write("\n")
-            f.flush()
-            os.fsync(f.fileno())
-    except OSError as e:
-        log_message(f"Error writing variables.inc: {e}")
-        raise
-    
+    is_fire_on = (time.time() - history.get("last_activity_timestamp", 0) or 999999) < 86400
     log_message(f"Stats updated successfully. Streak={history['streak']} Fire={'ON' if is_fire_on else 'OFF'}")
 
     # Optional JSON output for other apps (config: output_format = "json")
@@ -408,12 +419,15 @@ def main():
         except OSError as e:
             log_message(f"Error writing stats.json: {e}")
 
-    # Single line for Rainmeter to parse from RunCommand stdout (avoids WebParser file cache)
-    rainmeter_line = f"RAINMETER:Streak={history['streak']}|TotalSolved={history['last_total']}|LC_Count={history['last_lc_total']}|GFG_Count={history['last_gfg_total']}|FireImg={'fireon.png' if is_fire_on else 'fireoff.png'}|StreakColor={streak_color}"
-    print(rainmeter_line)
-
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         log_message(f"CRITICAL ERROR: {e}")
+        # Fallback: output last-known so Rainmeter still gets parseable data (no blank widget)
+        try:
+            history = load_history()
+            output_lines, rainmeter_line = _build_output_from_history(history)
+            _write_variables_and_rainmeter(output_lines, rainmeter_line)
+        except Exception:
+            pass
