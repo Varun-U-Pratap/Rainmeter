@@ -107,8 +107,10 @@ where pythonw
 copy the last path and paste it into `local.inc` (see `local.inc.example`). Use `PythonPath=...` with no leading space.
 
 ### Loading the .ini file
-click ^ from the taskbar and open manage from the rainmeter running 
-navigate to the folder and ini file and load it and now you are good to go
+Click ^ from the taskbar.
+Right click and open manage from the rainmeter running.
+Navigate into the DSA_Widget and find ini file and load it.
+Now you are good to go.
 
 ---
 
